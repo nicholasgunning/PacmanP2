@@ -38,9 +38,8 @@ public class PelletFactory implements RenderableFactory {
                     PELLET_POINTS
             );
 
-            if (type == 'z') {
-                Collectable powerPellet = new PowerPellet(pellet);
-                return powerPellet;
+            if (type == RenderableType.POWER_PELLET) {
+                return new PowerPellet(pellet); // Return PowerPellet directly
             } else {
                 return pellet;
             }

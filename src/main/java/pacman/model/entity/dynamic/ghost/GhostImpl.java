@@ -8,6 +8,7 @@ import pacman.model.entity.dynamic.physics.*;
 import pacman.model.level.Level;
 import pacman.model.maze.Maze;
 
+
 import java.util.*;
 
 import static pacman.model.entity.dynamic.ghost.strategies.InkyChaseBehaviour.addBlinkyPosition;
@@ -34,6 +35,7 @@ public class GhostImpl implements Ghost {
     private final ChaseBehaviour chaseBehaviour;
     private final char ghostType;
     private Vector2D blinkyPosition;
+    private boolean isWaiting;
 
 
 
@@ -49,20 +51,30 @@ public class GhostImpl implements Ghost {
         this.currentDirection = null;
         this.chaseBehaviour = chaseBehaviour;
         this.ghostType = GhostType;
+        this.isWaiting = false;
     }
 
     @Override
     public void setSpeeds(Map<GhostMode, Double> speeds) {
         this.speeds = speeds;
+        this.kinematicState.setSpeed(speeds.get(ghostMode));
     }
+
 
     @Override
     public Image getImage() {
+        if (this.ghostMode == GhostMode.FRIGHTENED) {
+            return new Image("maze/ghosts/frightened.png");
+        }
         return image;
     }
 
     @Override
     public void update() {
+        if (this.ghostMode == GhostMode.INACTIVE) {
+            this.setPosition(startingPosition);
+        }
+
         this.updateDirection();
         this.kinematicState.update();
         this.boundingBox.setTopLeft(this.kinematicState.getPosition());
@@ -101,6 +113,7 @@ public class GhostImpl implements Ghost {
     }
 
     private Vector2D getTargetLocation() {
+
         ChaseContext chaseContext = new ChaseContext(playerPosition, currentDirection, this.kinematicState.getPosition());
         if (this.ghostType == 'b') {
             addBlinkyPosition(this.kinematicState.getPosition());
@@ -109,7 +122,16 @@ public class GhostImpl implements Ghost {
         return switch (this.ghostMode) {
             case CHASE -> chaseBehaviour.chase(chaseContext);
             case SCATTER -> this.targetCorner;
+            case FRIGHTENED -> getRandomLocation();
+            case INACTIVE -> startingPosition;
         };
+    }
+
+    private Vector2D getRandomLocation() {
+        Random random = new Random();
+        int x = random.nextInt(28) * 8;
+        int y = random.nextInt(31) * 8;
+        return new Vector2D(x, y);
     }
 
     private Direction selectDirection(Set<Direction> possibleDirections) {
@@ -123,12 +145,31 @@ public class GhostImpl implements Ghost {
             return currentDirection;
         }
 
+        // For frightened mode, choose random direction
+        if (this.ghostMode == GhostMode.FRIGHTENED) {
+            List<Direction> validDirections = possibleDirections.stream()
+                    .filter(direction -> currentDirection == null || direction != currentDirection.opposite())
+                    .toList();
+
+
+            if (validDirections.isEmpty()) {
+                return currentDirection.opposite();
+            }
+
+            // Pick a random direction from valid directions
+            Random random = new Random();
+            return validDirections.get(random.nextInt(validDirections.size()));
+        }
+
+        // Normal mode direction selection
         Map<Direction, Double> distances = new HashMap<>();
 
         for (Direction direction : possibleDirections) {
             // ghosts never choose to reverse travel
             if (currentDirection == null || direction != currentDirection.opposite()) {
-                distances.put(direction, Vector2D.calculateEuclideanDistance(this.kinematicState.getPotentialPosition(direction), this.targetLocation));
+                distances.put(direction, Vector2D.calculateEuclideanDistance(
+                        this.kinematicState.getPotentialPosition(direction),
+                        this.targetLocation));
             }
         }
 
@@ -158,9 +199,29 @@ public class GhostImpl implements Ghost {
 
     @Override
     public void collideWith(Level level, Renderable renderable) {
+        if (level.isPlayer(renderable) && this.ghostMode == GhostMode.FRIGHTENED) {
+            this.ghostMode = GhostMode.INACTIVE;
+            // Create timer for 1 second delay
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    level.handleGhostEaten(self());
+                    reset();
+                }
+            }, 1300);
+            return;
+
+        }
+
         if (level.isPlayer(renderable)) {
             level.handleLoseLife();
         }
+    }
+
+    // Helper method to access the ghost instance from within timer task
+    private Ghost self() {
+        return this;
     }
 
     @Override
@@ -203,13 +264,15 @@ public class GhostImpl implements Ghost {
         return this.boundingBox;
     }
 
+
+
     @Override
     public void reset() {
-
         // return ghost to starting position
         this.kinematicState = new KinematicStateImpl.KinematicStateBuilder()
                 .setPosition(startingPosition)
                 .build();
+
         if (this.speeds != null && this.speeds.containsKey(GhostMode.SCATTER)) {
             this.kinematicState.setSpeed(this.speeds.get(GhostMode.SCATTER));
         }
@@ -217,7 +280,6 @@ public class GhostImpl implements Ghost {
         this.boundingBox.setTopLeft(startingPosition);
         this.ghostMode = GhostMode.SCATTER;
         this.currentDirectionCount = minimumDirectionCount;
-
     }
 
     @Override

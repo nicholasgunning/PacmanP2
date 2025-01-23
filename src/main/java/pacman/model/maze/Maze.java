@@ -16,7 +16,6 @@ public class Maze {
     private final List<Renderable> renderables;
     private final List<Renderable> ghosts;
     private final List<Renderable> pellets;
-    private final List<Renderable> powerPellets;
     private final Map<String, Boolean> isWall;
     private Renderable pacman;
     private int numLives;
@@ -26,7 +25,6 @@ public class Maze {
         this.ghosts = new ArrayList<>();
         this.pellets = new ArrayList<>();
         this.isWall = new HashMap<>();
-        this.powerPellets = new ArrayList<>();
     }
 
     private static String formatCoordinates(int x, int y) {
@@ -69,7 +67,7 @@ public class Maze {
             } else if (renderableType == RenderableType.PELLET) {
                 this.pellets.add(renderable);
             } else if (renderableType == RenderableType.POWER_PELLET) {
-                this.powerPellets.add(renderable);
+                this.pellets.add(renderable);
 
             } else {
                 this.isWall.put(formatCoordinates(x, y), true);
@@ -95,9 +93,7 @@ public class Maze {
         return pellets;
     }
 
-    public List<Renderable> getPowerPellets() {
-        return powerPellets;
-    }
+
 
     private int getCenterOfTile(int index) {
         return index * MazeCreator.RESIZING_FACTOR + MazeCreator.RESIZING_FACTOR / 2;

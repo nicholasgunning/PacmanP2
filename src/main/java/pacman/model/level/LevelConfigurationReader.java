@@ -36,7 +36,7 @@ public class LevelConfigurationReader {
         JSONObject modeLengthsObject = (JSONObject) levelConfiguration.get("modeLengths");
         ghostModeLengths.put(GhostMode.CHASE, ((Number) modeLengthsObject.get("chase")).intValue()*23);
         ghostModeLengths.put(GhostMode.SCATTER, ((Number) modeLengthsObject.get("scatter")).intValue()*23);
-        System.out.println(ghostModeLengths);
+        ghostModeLengths.put(GhostMode.FRIGHTENED, ((Number) modeLengthsObject.get("frightened")).intValue()*23);
         return ghostModeLengths;
     }
 
@@ -51,6 +51,7 @@ public class LevelConfigurationReader {
         JSONObject ghostSpeed = (JSONObject) levelConfiguration.get("ghostSpeed");
         ghostSpeeds.put(GhostMode.CHASE, ((Number) ghostSpeed.get("chase")).doubleValue());
         ghostSpeeds.put(GhostMode.SCATTER, ((Number) ghostSpeed.get("scatter")).doubleValue());
+        ghostSpeeds.put(GhostMode.FRIGHTENED, ((Number) ghostSpeed.get("frightened")).doubleValue());
         return ghostSpeeds;
     }
 }

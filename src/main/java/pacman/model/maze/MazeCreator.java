@@ -31,25 +31,23 @@ public class MazeCreator {
 
         try {
             Scanner scanner = new Scanner(f);
-
             int y = 0;
 
             while (scanner.hasNextLine()) {
-
                 String line = scanner.nextLine();
                 char[] row = line.toCharArray();
 
                 for (int x = 0; x < row.length; x++) {
                     Vector2D position = new Vector2D(x * RESIZING_FACTOR, y * RESIZING_FACTOR);
-
                     char renderableType = row[x];
+
                     Renderable renderable = renderableFactoryRegistry.createRenderable(
                             renderableType, position
                     );
 
+                    // renderable is already a PowerPellet if it's a power pellet type
                     maze.addRenderable(renderable, renderableType, x, y);
                 }
-
                 y += 1;
             }
 

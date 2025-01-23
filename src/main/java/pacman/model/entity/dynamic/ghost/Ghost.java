@@ -22,4 +22,7 @@ public interface Ghost extends DynamicEntity, PlayerPositionObserver {
      * @param ghostMode mode of the Ghost
      */
     void setGhostMode(GhostMode ghostMode);
+
+
+
 }

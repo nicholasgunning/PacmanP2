@@ -8,10 +8,12 @@ import pacman.model.entity.dynamic.DynamicEntity;
 import pacman.model.entity.dynamic.ghost.Ghost;
 import pacman.model.entity.dynamic.ghost.GhostMode;
 import pacman.model.entity.dynamic.physics.PhysicsEngine;
+import pacman.model.entity.dynamic.physics.Vector2D;
 import pacman.model.entity.dynamic.player.Controllable;
 import pacman.model.entity.dynamic.player.Pacman;
 import pacman.model.entity.staticentity.StaticEntity;
 import pacman.model.entity.staticentity.collectable.decorator.Collectable;
+import pacman.model.entity.staticentity.collectable.decorator.PowerPellet;
 import pacman.model.level.observer.LevelStateObserver;
 import pacman.model.maze.Maze;
 
@@ -40,6 +42,7 @@ public class LevelImpl implements Level {
     private List<Renderable> collectables;
     private GhostMode currentGhostMode;
     private int TickCount = 0;
+    private static int ghostPoints = 200;
 
     public LevelImpl(JSONObject levelConfiguration,
                      Maze maze) {
@@ -78,6 +81,7 @@ public class LevelImpl implements Level {
             ghost.setSpeeds(ghostSpeeds);
             ghost.setGhostMode(this.currentGhostMode);
         }
+
         this.modeLengths = levelConfigurationReader.getGhostModeLengths();
         // Set up collectables
         this.collectables = new ArrayList<>(maze.getPellets());
@@ -101,8 +105,6 @@ public class LevelImpl implements Level {
 
     @Override
     public void tick() {
-
-
         if (this.gameState != GameState.IN_PROGRESS) {
 
             if (tickCount >= START_LEVEL_TIME) {
@@ -112,10 +114,22 @@ public class LevelImpl implements Level {
 
         } else {
 
+
+
+
             if (tickCount == modeLengths.get(currentGhostMode)) {
+
+                if (currentGhostMode == GhostMode.FRIGHTENED) {
+                    this.currentGhostMode = GhostMode.CHASE;
+                    for (Ghost ghost : this.ghosts) {
+                        ghost.setGhostMode(GhostMode.CHASE);
+                    }
+                }
+
 
                 // update ghost mode
                 this.currentGhostMode = GhostMode.getNextGhostMode(currentGhostMode);
+
                 for (Ghost ghost : this.ghosts) {
                     ghost.setGhostMode(this.currentGhostMode);
                 }
@@ -169,30 +183,44 @@ public class LevelImpl implements Level {
 
     @Override
     public boolean isCollectable(Renderable renderable) {
-        return maze.getPellets().contains(renderable) && ((Collectable) renderable).isCollectable() ||
-                maze.getPowerPellets().contains(renderable) && ((Collectable) renderable).isCollectable();
+        return maze.getPellets().contains(renderable) && ((Collectable) renderable).isCollectable();
+
     }
 
     @Override
     public void collect(Collectable collectable) {
         this.points += collectable.getPoints();
         notifyObserversWithScoreChange(collectable.getPoints());
+
         this.collectables.remove(collectable);
+        if (collectable instanceof PowerPellet) {
+            for (Ghost ghost : this.ghosts) {
+                this.currentGhostMode = GhostMode.FRIGHTENED;
+                ghost.setGhostMode(GhostMode.FRIGHTENED);
+
+            }
+        }
     }
 
     @Override
     public void handleLoseLife() {
-
         if (gameState == GameState.IN_PROGRESS) {
             for (DynamicEntity dynamicEntity : getDynamicEntities()) {
-
                 dynamicEntity.reset();
-
             }
             setNumLives(numLives - 1);
             setGameState(GameState.READY);
             tickCount = 0;
         }
+    }
+
+    public void handleGhostEaten(Ghost ghost) {
+        if (ghostPoints > 1600) {
+            ghostPoints = 200;
+        }
+        this.points += ghostPoints;
+        notifyObserversWithScoreChange(ghostPoints);
+        ghostPoints *= 2;
     }
 
     @Override

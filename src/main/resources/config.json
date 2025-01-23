@@ -13,7 +13,7 @@
       "modeLengths": {
         "chase" : 100,
         "scatter": 1,
-        "frightened": 10
+        "frightened": 15
       }
     },
     {
